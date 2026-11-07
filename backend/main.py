@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from pydantic import BaseModel
 from pathlib import Path
 from contextlib import closing
@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
 import json
 import os
+import secrets
 
 app = FastAPI(title="ResQ Beacon API")
 
@@ -32,6 +33,28 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+
+
+# Verify that a request is coming from the authorized admin server.
+def require_admin(
+    x_admin_key: str | None = Header(default=None, alias="X-Admin-Key")
+):
+    expected_key = os.getenv("ADMIN_API_KEY")
+
+    # Never allow admin access without a configured secret.
+    if not expected_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Admin authentication is not configured"
+        )
+
+    if not x_admin_key or not secrets.compare_digest(
+        x_admin_key, expected_key
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized"
+        )
 
 # Database location
 DB_PATH = Path(__file__).resolve().parent / "resq.db"
@@ -81,6 +104,7 @@ class EmergencyRequest(BaseModel):
 @app.get("/")
 def home():
     return {"message": "ResQ Beacon is running!"}
+
 
 
 # Save a new emergency request
@@ -137,6 +161,12 @@ def get_requests():
         requests_list.append(request)
 
     return requests_list
+
+
+# Private endpoint for the admin dashboard
+@app.get("/admin/requests", dependencies=[Depends(require_admin)])
+def get_admin_requests():
+    return get_requests()
 
 
 from ollama import chat
