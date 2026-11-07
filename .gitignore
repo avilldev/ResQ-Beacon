@@ -10,6 +10,3 @@ dist/
 backend/resq.db
 .next/
 .vercel/
-# Private local environment files
-backend/.env
-admin-dashboard/.env.local

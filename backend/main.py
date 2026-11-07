@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from pathlib import Path
 from contextlib import closing
@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
 import json
 import os
-import secrets
 
 app = FastAPI(title="ResQ Beacon API")
 
@@ -33,28 +32,6 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
-
-
-# Verify that a request is coming from the authorized admin server.
-def require_admin(
-    x_admin_key: str | None = Header(default=None, alias="X-Admin-Key")
-):
-    expected_key = os.getenv("ADMIN_API_KEY")
-
-    # Never allow admin access without a configured secret.
-    if not expected_key:
-        raise HTTPException(
-            status_code=503,
-            detail="Admin authentication is not configured"
-        )
-
-    if not x_admin_key or not secrets.compare_digest(
-        x_admin_key, expected_key
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Unauthorized"
-        )
 
 # Database location
 DB_PATH = Path(__file__).resolve().parent / "resq.db"
@@ -106,7 +83,6 @@ def home():
     return {"message": "ResQ Beacon is running!"}
 
 
-
 # Save a new emergency request
 @app.post("/requests")
 def create_request(request: EmergencyRequest):
@@ -137,7 +113,7 @@ def create_request(request: EmergencyRequest):
 
 # Retrieve all emergency requests
 
-@app.get("/requests", dependencies=[Depends(require_admin)])
+@app.get("/requests")
 def get_requests():
     with closing(get_connection()) as conn:
         rows = conn.execute(
@@ -161,12 +137,6 @@ def get_requests():
         requests_list.append(request)
 
     return requests_list
-
-
-# Private endpoint for the admin dashboard
-@app.get("/admin/requests", dependencies=[Depends(require_admin)])
-def get_admin_requests():
-    return get_requests()
 
 
 from ollama import chat
@@ -226,10 +196,7 @@ def analyze_emergency(request: EmergencyRequest):
             detail="AI analysis unavailable. Check Ollama."
         )
 
-@app.post(
-    "/requests/{request_id}/analyze",
-    dependencies=[Depends(require_admin)]
-)
+@app.post("/requests/{request_id}/analyze")
 def analyze_saved_request(request_id: int):
 
     # Find the saved emergency in the database
