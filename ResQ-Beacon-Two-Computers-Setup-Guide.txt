@@ -1,0 +1,372 @@
+RESQ BEACON - TWO-COMPUTER RESTART AND SETUP GUIDE
+===================================================
+Working setup as tested on November 7, 2026
+
+SAVE THIS FILE. Use Part A after restarting either computer.
+
+OVERVIEW
+--------
+Mac (main computer):
+  - Python FastAPI backend on http://127.0.0.1:8000
+  - Ollama running the gemma3:1b AI model
+  - SQLite database stored at backend/resq.db
+  - Cloudflare Quick Tunnel sharing that backend over HTTPS
+  - Its own Next.js frontend on http://localhost:3000
+
+Partner's Windows PC:
+  - Its own Next.js frontend on http://localhost:3000
+  - Uses the Cloudflare HTTPS address to reach the Mac's backend
+  - Does NOT need to run Python, Ollama, or another database
+
+Both frontends read/write the SAME database through the Mac's backend.
+
+IMPORTANT TERMINAL KEY
+----------------------
+Mac VS Code > Terminal > New Terminal (backend): runs Python/FastAPI.
+Mac Terminal app (open via Spotlight): runs Cloudflare tunnel.
+Mac VS Code > Terminal > New Terminal (frontend): runs Next.js.
+Windows VS Code > Terminal > New Terminal: runs partner's Next.js.
+
+These are FOUR DIFFERENT terminals. Keep them open while demonstrating.
+Commands using 'cd frontend' or 'cd backend' assume the terminal starts
+in the ResQ Beacon repository root. If you are already inside the named
+folder, do NOT run 'cd' again. You can check your folder with 'pwd' on Mac
+or 'Get-Location' in Windows PowerShell.
+
+===================================================
+PART A - START EVERYTHING AFTER A RESTART (IN ORDER)
+===================================================
+
+STEP A1 - MAC: Start Ollama
+---------------------------
+Computer: YOUR MAC
+Software: macOS desktop (no terminal necessary)
+
+1. Open the Ollama app through Spotlight / Applications.
+2. Make sure the gemma3:1b model is already installed. It should be from
+   the original setup; do not redownload it after every restart.
+
+Optional check in MAC TERMINAL app or a fresh VS Code terminal:
+    ollama list
+If you need to install it for the first time:
+    ollama pull gemma3:1b
+If the Ollama app cannot run the service, you can instead run 'ollama serve'
+from a separate MAC TERMINAL window. Do not run two Ollama services at once.
+
+STEP A2 - MAC: Start Python/FastAPI backend
+-------------------------------------------
+Computer: YOUR MAC
+Software: VS Code > Terminal > New Terminal
+Starting folder: ROOT of the ResQ Beacon repository
+
+Run these commands ONE AT A TIME:
+    cd backend
+    source .venv/bin/activate
+    python -m uvicorn main:app --host 127.0.0.1 --port 8000
+
+Keep this VS Code terminal OPEN.
+Expected server message: Uvicorn running on http://127.0.0.1:8000
+
+Check in MAC BROWSER:
+    http://127.0.0.1:8000
+Expected: {"message":"ResQ Beacon is running!"}
+
+If 'source .venv/bin/activate' fails, see First-time Setup in Part C.
+If port 8000 is already in use, a backend may already be running;
+do not start an unnecessary duplicate.
+
+STEP A3 - MAC: Start the Cloudflare tunnel (HTTP/2)
+----------------------------------------------------
+Computer: YOUR MAC
+Software: macOS TERMINAL APP (not the VS Code backend terminal)
+Starting folder: ANY folder; location does not matter
+
+Run:
+    cloudflared tunnel --protocol http2 --url http://127.0.0.1:8000
+
+Why 'http2'? The uOttawa public Wi-Fi tests showed that UDP/QUIC failed
+while TCP/HTTP/2 connectivity passed. Force HTTP/2 so it connects.
+
+Keep this Mac Terminal window OPEN.
+Look for a NEW link resembling:
+    https://random-words.trycloudflare.com
+Also look for a successful registered tunnel connection in the output.
+
+CRITICAL: The temporary Quick Tunnel URL MAY CHANGE EACH TIME YOU START
+A NEW TUNNEL. COPY THE EXACT NEW ADDRESS FROM YOUR TERMINAL.
+Do NOT type a second https://, add a slash to the end, or add
+'.trycloudflare.com' twice.
+
+Check in MAC BROWSER:
+    https://YOUR-NEW-TUNNEL.trycloudflare.com/requests
+Expected: JSON array of existing requests, e.g. [...] or [].
+
+Check the SAME URL on PARTNER'S WINDOWS BROWSER. The JSON should match.
+
+Do not continue if this URL shows Cloudflare Error 1033. See Part D.
+
+STEP A4 - MAC: Check local frontend environment file
+-----------------------------------------------------
+Computer: YOUR MAC
+Software: VS Code editor (NOT a terminal)
+File: frontend/.env.local
+
+The contents should be EXACTLY:
+    NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+
+No trailing '/'. Your Mac connects directly to its own FastAPI backend.
+Save the file (Command + S). This file is intentionally NOT in GitHub.
+
+STEP A5 - MAC: Start Mac's Next.js frontend
+-------------------------------------------
+Computer: YOUR MAC
+Software: VS Code > Terminal > New Terminal (SEPARATE from backend)
+Starting folder: ROOT of the ResQ Beacon repository
+
+Run:
+    cd frontend
+    npm run dev
+
+Keep this VS Code terminal OPEN.
+Check in MAC BROWSER:
+    http://localhost:3000/dashboard
+
+The Mac dashboard should display saved requests.
+
+STEP A6 - WINDOWS: Update frontend environment with NEW tunnel URL
+-------------------------------------------------------------------
+Computer: PARTNER'S WINDOWS PC
+Software: VS Code editor (NOT a terminal)
+File: frontend/.env.local
+
+Set this ONE line, replacing the example with the CURRENT Cloudflare URL
+from Step A3:
+    NEXT_PUBLIC_API_URL=https://YOUR-NEW-TUNNEL.trycloudflare.com
+
+Correct: HTTPS, exact tunnel hostname, NO trailing slash, NO extra path.
+Wrong:  https://https//...
+Wrong:  https://example.trycloudflare.com/.trycloudflare.com/
+Wrong:  http://localhost:8000
+Wrong:  http://10.202.0.191:8000
+
+Save file (Control + S). This file is intentionally NOT in GitHub.
+If Windows Next.js is already running, STOP it with Control + C, then
+restart it in Step A7 so the new environment variable is loaded.
+
+STEP A7 - WINDOWS: Start partner's Next.js frontend
+---------------------------------------------------
+Computer: PARTNER'S WINDOWS PC
+Software: VS Code > Terminal > New Terminal (PowerShell is fine)
+Starting folder: ROOT of the ResQ Beacon repository
+
+Run:
+    cd frontend
+    npm run dev
+
+Keep this VS Code terminal OPEN.
+Check in WINDOWS BROWSER:
+    http://localhost:3000/dashboard
+
+If dependencies are missing because the repository was freshly cloned:
+    npm install
+    npm run dev
+
+STEP A8 - TEST BOTH COMPUTERS
+-----------------------------
+1. On Mac BROWSER open:     http://localhost:3000/dashboard
+2. On Windows BROWSER open: http://localhost:3000/dashboard
+3. Confirm both dashboards list the same requests.
+4. On Windows BROWSER open: http://localhost:3000/request
+5. Submit a FICTIONAL emergency report and click Transmit Request.
+6. Confirm the AI summary / hazards / needs appear.
+7. On Mac BROWSER refresh: http://localhost:3000/dashboard
+8. Confirm the new report and AI analysis have the same request ID.
+9. Reverse test: submit a fictional request on Mac, check Windows dashboard.
+
+SUCCESS = both frontends, one shared FastAPI backend, one Ollama model,
+and one SQLite database are working together.
+
+===================================================
+PART B - WHEN YOU ARE FINISHED
+===================================================
+
+- Keep Ollama running as long as AI analysis is needed.
+- Keep the Mac FastAPI terminal running.
+- Keep the Mac Cloudflare Tunnel terminal running.
+- Keep the Mac Next.js terminal running if using Mac's frontend.
+- Keep the Windows Next.js terminal running if using Windows' frontend.
+- Do not let the Mac sleep during the demo.
+- Stop servers/tunnels with Control + C in their respective terminals.
+- The tunnel is temporary and may have a NEW URL the next time it starts.
+- Your Mac's SQLite file backend/resq.db normally persists after reboot.
+  Restarting does NOT automatically erase your saved requests.
+
+===================================================
+PART C - ONE-TIME SETUP (NOT NEEDED AFTER EVERY REBOOT)
+===================================================
+
+C1 - MAC: Homebrew + cloudflared installation
+---------------------------------------------
+Computer: YOUR MAC
+Software: macOS TERMINAL APP
+Starting folder: ANY folder
+
+Homebrew was installed successfully via the official install command:
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+On this Mac, Homebrew was installed at /opt/homebrew/bin/brew.
+If 'brew: command not found' ever happens again, activate it with:
+    eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+
+To make that setting persistent in zsh (ONLY if not already configured):
+    echo 'eval "$(/opt/homebrew/bin/brew shellenv zsh)"' >> ~/.zprofile
+
+Install Cloudflare once:
+    brew install cloudflared
+Check:
+    cloudflared --version
+
+Do NOT repeat Homebrew installation after every restart.
+
+C2 - MAC: Python environment (only if missing / new clone)
+----------------------------------------------------------
+Computer: YOUR MAC
+Software: VS Code integrated terminal
+Starting folder: ROOT of repository
+
+    cd backend
+    python3 -m venv .venv
+    source .venv/bin/activate
+    python -m pip install -r requirements.txt
+
+Ensure Ollama app/model are installed; if model is missing:
+    ollama pull gemma3:1b
+
+C3 - BOTH COMPUTERS: Frontend dependencies (only first time / after changes)
+----------------------------------------------------------------------------
+Computer: Mac or Windows as appropriate
+Software: VS Code integrated terminal
+Starting folder: ROOT of repository
+
+    cd frontend
+    npm install
+
+Ensure Node.js/npm are installed. Ordinary restarts only need 'npm run dev'.
+
+C4 - GIT: The two different .gitignore files
+---------------------------------------------
+Root .gitignore keeps local secrets, dependencies and the DB out of GitHub.
+Frontend's .gitignore ALSO needs a special exception for .env.example:
+    .env*
+    !.env.example
+
+Keep frontend/.env.example in GitHub as setup documentation, for example:
+    NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+
+This is an example, NOT an automatically shared configuration.
+Each developer creates their own frontend/.env.local, which is ignored.
+Keep .env.local OUT of GitHub. On Windows it holds the current temporary
+Cloudflare URL; on the Mac it holds the loopback API URL.
+
+Git push/pull is only needed when sharing CODE changes or the example file,
+not when starting the tunnel or restarting locally.
+
+===================================================
+PART D - COMMON PROBLEMS AND FIXES
+===================================================
+
+1. Mac dashboard says backend at 10.202...:8000 unavailable
+   -> Check Mac's frontend/.env.local uses http://127.0.0.1:8000.
+   -> Save it, stop Mac Next.js (Control + C), start 'npm run dev' again.
+
+2. Windows dashboard shows HTTP 404
+   -> Check Windows frontend/.env.local for an EXTRA trailing '/'.
+   -> Use exact URL without final slash, and restart Windows Next.js.
+   -> The dashboard's API_URL can be normalized with:
+      const API_URL = (
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      ).replace(/\/+$/, '');
+   -> Make sure the request form uses the same valid base URL.
+
+3. Cloudflare Error 1033 or endless QUIC handshake errors
+   -> Keep Mac FastAPI running.
+   -> On Mac Terminal stop previous tunnel with Control + C.
+   -> Run:
+      cloudflared tunnel --protocol http2 --url http://127.0.0.1:8000
+   -> Use the NEW generated HTTPS URL; check for registered connection.
+   -> The uOttawa public Wi-Fi blocked QUIC/UDP in our earlier test.
+
+4. Windows website opens, but dashboard cannot connect
+   -> On Windows open CURRENT Cloudflare URL + /requests in a browser.
+   -> If browser cannot show JSON: investigate tunnel / Mac backend.
+   -> If browser shows JSON: check .env.local and restart Next.js.
+   -> Make sure the URL is exactly HTTPS, no duplicate domain/extra '/'.
+
+5. Both dashboards list requests but AI summary fails
+   -> Check Ollama app is running on Mac and 'ollama list' includes gemma3:1b.
+   -> Check Mac VS Code backend terminal for Python/AI errors.
+   -> Confirm Mac backend still running on 127.0.0.1:8000.
+
+6. 'command not found: brew' in Mac Terminal
+   -> Run: eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+   -> Try: brew --version
+
+7. 'localhost:3000' does not open on one computer
+   -> Start 'npm run dev' on THAT computer in its own VS Code terminal.
+   -> 'localhost' means that particular computer, not the other one.
+
+8. Quick Tunnel URL changes
+   -> Re-copy the newest link from Mac Cloudflare terminal.
+   -> Update ONLY Windows frontend/.env.local to use the new URL.
+   -> Restart Windows Next.js.
+   -> Mac frontend can keep http://127.0.0.1:8000.
+
+9. Unsure which folder the terminal is in
+   -> Mac: 'pwd'  |  Windows PowerShell: 'Get-Location'
+   -> For the backend, need repository/backend (contains main.py).
+   -> For the frontend, need repository/frontend (contains package.json).
+
+===================================================
+IMPORTANT SECURITY / DEMO LIMITATIONS
+===================================================
+
+The Cloudflare Quick Tunnel exposes the FastAPI API to the public internet.
+The current prototype API has no user authentication. Anyone with access
+to the URL may be able to create or read reports. Use FICTIONAL test data
+only, never real personal, medical, or emergency information. This is NOT
+an operational emergency response service and must not be used to request
+real help. Stop the tunnel when you are finished testing.
+
+A Quick Tunnel is for development, not reliable permanent hosting. Later,
+configure authenticated production hosting and the .xyz domain separately.
+
+FINAL QUICK REFERENCE
+=====================
+MAC (VS Code backend terminal, repository root):
+    cd backend
+    source .venv/bin/activate
+    python -m uvicorn main:app --host 127.0.0.1 --port 8000
+
+MAC (Mac Terminal app, anywhere):
+    cloudflared tunnel --protocol http2 --url http://127.0.0.1:8000
+
+MAC (VS Code frontend terminal, repository root):
+    cd frontend
+    npm run dev
+
+MAC frontend/.env.local:
+    NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+
+WINDOWS frontend/.env.local (replace with CURRENT Cloudflare link):
+    NEXT_PUBLIC_API_URL=https://YOUR-NEW-TUNNEL.trycloudflare.com
+
+WINDOWS (VS Code frontend terminal, repository root):
+    cd frontend
+    npm run dev
+
+BROWSERS (on EACH computer):
+    http://localhost:3000/dashboard
+    http://localhost:3000/request
+
+Test: Windows transmits a fictional request -> Mac dashboard sees SAME AI
+analysis -> repeat in reverse.
