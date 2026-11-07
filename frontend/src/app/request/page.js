@@ -10,7 +10,9 @@ export default function RequestHelp() {
   const [analysis, setAnalysis] = useState(null);
 
   // In production set this in Vercel to https://api.your-domain.xyz
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const API_URL = (
+    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  ).replace(/\/+$/, '');
 
   async function analyzeSavedRequest(id) {
     setStatus('analyzing');

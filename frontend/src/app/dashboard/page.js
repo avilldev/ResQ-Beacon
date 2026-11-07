@@ -7,7 +7,9 @@ export default function ResponderDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const API_URL = (
+    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  ).replace(/\/+$/, '');
 
   const fetchRequests = async () => {
   try {
