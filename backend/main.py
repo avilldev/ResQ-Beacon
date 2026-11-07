@@ -4,10 +4,26 @@ from pydantic import BaseModel
 from pathlib import Path
 from contextlib import closing
 from ollama import chat
+from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
 import json
 
 app = FastAPI(title="ResQ Beacon API")
+
+
+# Allow the JavaScript frontend to communicate
+# with the Python backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"]
+)
 
 # Database location
 DB_PATH = Path(__file__).resolve().parent / "resq.db"
