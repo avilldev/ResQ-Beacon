@@ -13,4 +13,4 @@ with emergency resources and assistance.
 - AI Integration: In development
 
 ## Team
-Built by a team of two for Redshifted Cortex 2026.
+Built by a team of two: Maxim Soloho(backend) and Andrés Villanueva(frontend)
