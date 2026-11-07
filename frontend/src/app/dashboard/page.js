@@ -5,22 +5,38 @@ import { useState, useEffect } from 'react';
 export default function ResponderDashboard() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
   const fetchRequests = async () => {
-    try {
-      const response = await fetch(`${API_URL}/requests`);
-      if (response.ok) {
-        const data = await response.json();
-        setRequests(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch:", error);
-    } finally {
-      setLoading(false);
+  try {
+    if (!API_URL) {
+      throw new Error('NEXT_PUBLIC_API_URL is missing');
     }
-  };
+
+    const response = await fetch(`${API_URL}/requests`, {
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    setRequests(data);
+    setError('');
+
+  } catch (error) {
+    console.error("Failed to fetch:", error);
+    setError(
+      `Could not connect to the backend at ${API_URL || 'unknown address'}. Check the server and network.`
+    );
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchRequests();
@@ -32,11 +48,14 @@ export default function ResponderDashboard() {
   const triggerAIAnalysis = async (id) => {
     try {
       const response = await fetch(`${API_URL}/requests/${id}/analyze`, { method: 'POST' });
-      if (response.ok) {
-        fetchRequests(); // Reload data to show the new AI analysis
-      }
+      if (!response.ok) {
+  throw new Error(`AI returned HTTP ${response.status}`);
+}
+
+await fetchRequests();
     } catch (error) {
       console.error("Analysis failed:", error);
+      setError('AI analysis failed. Check Ollama and the FastAPI terminal.');
     }
   };
 
@@ -52,13 +71,23 @@ export default function ResponderDashboard() {
         </button>
       </div>
 
+      {error && (
+  <div
+    role="alert"
+    className="mb-6 bg-red-950/30 border border-red-800 text-red-300 p-4 text-sm font-mono"
+  >
+    {error}
+  </div>
+)}
+
+
       {loading ? (
         <div className="text-amber-500 font-mono text-sm flex items-center gap-2">
           <span className="w-2 h-2 bg-amber-500 rounded-full animate-ping"></span> Syncing with Command...
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
-          {requests.length === 0 && (
+          {!error && requests.length === 0 && (
             <div className="text-slate-500 font-mono text-sm p-8 bg-[#0d0e15] border border-slate-800">
               No active incidents detected in sector.
             </div>

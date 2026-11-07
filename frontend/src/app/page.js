@@ -18,8 +18,10 @@ export default function Home() {
           </h1>
 
           <p className="text-lg sm:text-xl text-slate-400 max-w-2xl leading-relaxed font-mono">
-            ResQ-Beacon instantly triages incoming disaster relief requests, assessing urgency and routing aid where it is needed most.
-          </p>
+  ResQ-Beacon uses AI to summarize disaster relief reports,
+  identify potential hazards, and suggest assistance needs
+  for human review.
+</p>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto pt-4">
             <Link 
@@ -45,16 +47,16 @@ export default function Home() {
               <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1.5 font-mono">System Network</div>
               <div className="text-emerald-500 font-bold flex items-center gap-2 font-mono text-sm">
                 <div className="w-2 h-2 bg-emerald-500 rounded-sm animate-pulse"></div>
-                ACTIVE & ROUTING
+                DEMO MODE
               </div>
             </div>
             <div>
-              <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1.5 font-mono">Avg Triage Processing</div>
-              <div className="text-slate-200 font-bold font-mono text-sm">0.84 SECONDS</div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1.5 font-mono">AI Analysis</div>
+              <div className="text-slate-200 font-bold font-mono text-sm">ON REQUEST</div>
             </div>
             <div className="hidden sm:block">
-              <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1.5 font-mono">Dispatched Units</div>
-              <div className="text-slate-200 font-bold font-mono text-sm">14 TEAMS</div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1.5 font-mono">Responder Dispatch</div>
+              <div className="text-slate-200 font-bold font-mono text-sm">NOT CONNECTED</div>
             </div>
           </div>
         </div>
@@ -67,11 +69,11 @@ export default function Home() {
               <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M4 6h16M4 12h16M4 18h7"></path>
               </svg>
-              Terminal Feed
+              Sample Incident Feed
             </span>
             <span className="text-[10px] font-mono text-red-400 bg-red-950/50 px-2 py-0.5 border border-red-900 uppercase tracking-widest flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
-              Live
+              Sample
             </span>
           </div>
           
