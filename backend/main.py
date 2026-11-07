@@ -137,7 +137,7 @@ def create_request(request: EmergencyRequest):
 
 # Retrieve all emergency requests
 
-@app.get("/requests")
+@app.get("/requests", dependencies=[Depends(require_admin)])
 def get_requests():
     with closing(get_connection()) as conn:
         rows = conn.execute(
@@ -226,7 +226,10 @@ def analyze_emergency(request: EmergencyRequest):
             detail="AI analysis unavailable. Check Ollama."
         )
 
-@app.post("/requests/{request_id}/analyze")
+@app.post(
+    "/requests/{request_id}/analyze",
+    dependencies=[Depends(require_admin)]
+)
 def analyze_saved_request(request_id: int):
 
     # Find the saved emergency in the database

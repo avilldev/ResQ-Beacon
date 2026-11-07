@@ -17,7 +17,7 @@ export default function ResponderDashboard() {
       throw new Error('NEXT_PUBLIC_API_URL is missing');
     }
 
-    const response = await fetch(`${API_URL}/requests`, {
+    const response = await fetch("/api/requests", {
       cache: 'no-store'
     });
 
@@ -49,7 +49,7 @@ export default function ResponderDashboard() {
 
   const triggerAIAnalysis = async (id) => {
     try {
-      const response = await fetch(`${API_URL}/requests/${id}/analyze`, { method: 'POST' });
+      const response = await fetch(`/api/requests/${id}/analyze`, { method: 'POST' });
       if (!response.ok) {
   throw new Error(`AI returned HTTP ${response.status}`);
 }

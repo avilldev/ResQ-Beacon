@@ -14,21 +14,37 @@ export default function RequestHelp() {
     process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
   ).replace(/\/+$/, '');
 
-  async function analyzeSavedRequest(id) {
-    setStatus('analyzing');
-    try {
-      const response = await fetch(`${API_URL}/requests/${id}/analyze`, {
-        method: 'POST',
-      });
-      if (!response.ok) throw new Error(`AI returned HTTP ${response.status}`);
-      const result = await response.json();
-      setAnalysis(result.analysis);
-      setStatus('success');
-    } catch (error) {
-      console.error('Saved report, but AI analysis failed:', error);
-      setStatus('saved_without_analysis');
+  
+async function analyzeSavedRequest(report) {
+  setStatus('analyzing');
+
+  try {
+    const response = await fetch(`${API_URL}/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: report.message,
+        location: report.location,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI returned HTTP ${response.status}`);
     }
+
+    const result = await response.json();
+
+    setAnalysis(result.analysis);
+    setStatus('success');
+
+  } catch (error) {
+    console.error('Saved report, but AI analysis failed:', error);
+    setStatus('saved_without_analysis');
   }
+}
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
