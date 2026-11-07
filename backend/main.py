@@ -7,22 +7,30 @@ from ollama import chat
 from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
 import json
+import os
 
 app = FastAPI(title="ResQ Beacon API")
 
 
-# Allow the JavaScript frontend to communicate
-# with the Python backend
+# Allow the local Next.js frontend and your deployed site to use this API.
+# When running publicly, set FRONTEND_ORIGIN=https://your-domain.xyz
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+public_origin = os.getenv("FRONTEND_ORIGIN", "").rstrip("/")
+if public_origin:
+    allowed_origins.append(public_origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
-    ],
+    allow_origins=allowed_origins,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"]
+    allow_headers=["Content-Type"],
 )
 
 # Database location
